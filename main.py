@@ -2,12 +2,15 @@ import re
 import urllib
 import urllib.request
 
+import xlwt
 from bs4 import BeautifulSoup
 
 
 def main():
     baseurl = 'https://movie.douban.com/top250?start='
-    getData(baseurl)
+    datalist = getData(baseurl)
+    savepath = '豆瓣电影250.xls'
+    saveData(datalist, savepath)
 
 
 # 除了换行符之外的任何字符 .
@@ -19,12 +22,12 @@ findTitle = re.compile(r'<span class="title">(.*)</span>')
 findRating = re.compile(r'<span class="rating_num" property="v:average">(.*)</span>')
 findJudge = re.compile(r'<span>(\d*)人评价</span>')
 findInq = re.compile(r'<span class="inq">(.*)</span>')
-findBd = re.compile(r'<p class="">(.*)</p>', re.S)
+findBd = re.compile(r'<p class="">(.*?)</p>', re.S)
 
 
 def getData(baseurl):
     datalist = []
-    for i in range(0, 1):
+    for i in range(0, 10):
         url = baseurl + str(i * 25)
         html = askUrl(url)
 
@@ -66,8 +69,9 @@ def getData(baseurl):
             bd = re.findall(findBd, item)[0]
             bd = re.sub('<br(\s+)?/>(\s+)?', ' ', bd)
             bd = re.sub('/', ' ', bd)
-            data.append(bd)
-            break
+            data.append(bd.strip())
+            datalist.append(data)
+    return datalist
 
 
 def askUrl(url):
@@ -99,4 +103,22 @@ def askUrl(url):
     return html
 
 
-main()
+def saveData(datalist, savepath):
+    print(111, datalist)
+    book = xlwt.Workbook(encoding="utf-8", style_compression=0)  # 创建workbook对象
+    sheet = book.add_sheet('豆瓣电影top250', cell_overwrite_ok=True)  # 创建工作表
+    col = ('电影详情链接', '图片链接', '影片中文名', '影片外文名', '评分', '评价数', '简介', '相关信息')
+    for i in range(0, 8):
+        sheet.write(0, i, col[i])
+    for i in range(0, 250):
+        print("第%d条" % (i + 1))
+        data = datalist[i]
+        for j in range(0, 8):
+            sheet.write(i + 1, j, data[j])
+
+    book.save(savepath)  # 保存数据表
+
+
+if __name__ == '__main__':
+    main()
+    print('完毕')
