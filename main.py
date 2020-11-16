@@ -1,4 +1,5 @@
 import re
+import sqlite3
 import urllib
 import urllib.request
 
@@ -7,10 +8,12 @@ from bs4 import BeautifulSoup
 
 
 def main():
-    baseurl = 'https://movie.douban.com/top250?start='
+    baseurl = "https://movie.douban.com/top250?start="
     datalist = getData(baseurl)
-    savepath = '豆瓣电影250.xls'
-    saveData(datalist, savepath)
+    # savepath = '豆瓣电影250.xls'
+    # saveData(datalist, savepath)
+    dbpath = 'movie.db'
+    saveData2DB(datalist, dbpath)
 
 
 # 除了换行符之外的任何字符 .
@@ -117,6 +120,54 @@ def saveData(datalist, savepath):
             sheet.write(i + 1, j, data[j])
 
     book.save(savepath)  # 保存数据表
+
+
+def saveData2DB(datalist, dbpath):
+    init_db(dbpath)
+    conn = sqlite3.connect(dbpath)
+    cur = conn.cursor()
+
+    for data in datalist:
+        for index in range(len(data)):
+            if index == 0 or index == 1:
+                data[index] = "啊"
+            if index == 4 or index == 5:
+                continue
+            data[index] = '"' + data[index] + '"'
+        sql = '''
+            insert into movie250 (
+                info_link, pic_link, cname, ename, score, rated, introduction, info
+            )
+        values(%s)
+        '''%",".join(data)
+        print(sql)
+        cur.execute(sql)
+        conn.commit()
+    cur.close()
+    conn.close()
+
+
+def init_db(dbpath):
+    # 初始化数据库
+    sql = '''
+        create table movie250
+        (
+            id integer primary key autoincrement,
+            info_link text,
+            pic_link text,
+            cname varchar,
+            ename varchar,
+            score numeric,
+            rated numeric,
+            introduction text,
+            info text
+        )
+    '''  # 创建数据表
+    conn = sqlite3.connect(dbpath)
+    cursor = conn.cursor()  # 获取游标
+    cursor.execute(sql)  # 执行sql语句
+    conn.commit()        # 提交数据库操作
+    conn.close()         # 关闭数据库操作
 
 
 if __name__ == '__main__':
